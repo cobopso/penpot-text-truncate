@@ -1,15 +1,15 @@
 /*
- * Text Truncate Live 0.3.0
+ * Text Truncate Live 0.3.1
  *
- * Safe build: starts from the working v0.1 architecture and only attaches
- * documented shapechange listeners AFTER the user enables live truncation.
- * No polling, no startup page scan, no page/file listeners.
+ * Safe build: keeps the working live-resize architecture but never re-opens
+ * an already-open Penpot UI as hidden. Compact mode uses ui.resize() only.
+ * Startup reconnect attaches listeners without expensive re-measurement.
  */
 
-const SOURCE = "penpot-text-truncate-live-030";
+const SOURCE = "penpot-text-truncate-live-031";
 const UI_URL = "https://cobopso.github.io/penpot-text-truncate/index.html";
-const KEY_STATE = "text-truncate-live:state:v030";
-const LEGACY_KEYS = ["text-truncate-live:state:v022", "text-truncate-live:state:v021", "text-truncate-live:state:v02"];
+const KEY_STATE = "text-truncate-live:state:v031";
+const LEGACY_KEYS = ["text-truncate-live:state:v030", "text-truncate-live:state:v022", "text-truncate-live:state:v021", "text-truncate-live:state:v02"];
 const DEFAULT_ELLIPSIS = "…";
 
 const processing = new Set();
@@ -17,22 +17,21 @@ const targetWatchers = new Map();
 const watcherRegistry = new Map();
 const pendingTargets = new Set();
 let flushQueued = false;
+let flushTimer = null;
 
-let uiHidden = false;
-
-function openUI(hidden) {
-  uiHidden = hidden === true;
+function openUI() {
   penpot.ui.open(
     "Text Truncate Live",
-    UI_URL + "?theme=" + encodeURIComponent(String(penpot.theme || "light")) + (uiHidden ? "&background=1" : ""),
-    { width: 390, height: 620, hidden: uiHidden }
+    UI_URL + "?theme=" + encodeURIComponent(String(penpot.theme || "light")),
+    { width: 390, height: 620 }
   );
 }
 
-openUI(false);
+openUI();
 
-// Reconnect text layers that were already marked as live in a previous run.
-Promise.resolve().then(function () { return reconnectCurrentPage(); }).catch(function () {});
+// Reconnect saved live targets without re-measuring them on startup.
+// This keeps opening the plugin lightweight on large Penpot pages.
+Promise.resolve().then(function () { return reconnectCurrentPage(false); }).catch(function () {});
 
 penpot.on("themechange", function (theme) {
   send({ type: "themechange", theme: theme });
@@ -44,7 +43,7 @@ penpot.on("selectionchange", function () {
 
 penpot.on("pagechange", function () {
   clearAllWatchers();
-  Promise.resolve().then(function () { return reconnectCurrentPage(); }).catch(function () {});
+  Promise.resolve().then(function () { return reconnectCurrentPage(false); }).catch(function () {});
 });
 
 penpot.ui.onMessage(async function (message) {
@@ -72,9 +71,22 @@ penpot.ui.onMessage(async function (message) {
       return;
     }
 
-    if (message.type === "background") {
-      await reconnectCurrentPage();
-      goBackground();
+    if (message.type === "compact") {
+      penpot.ui.resize(230, 132);
+      send({ type: "compact-state", compact: true });
+      return;
+    }
+
+    if (message.type === "expand") {
+      penpot.ui.resize(390, 620);
+      send({ type: "compact-state", compact: false });
+      sendSelectionState();
+      sendLiveState();
+      return;
+    }
+
+    if (message.type === "close-plugin") {
+      penpot.closePlugin();
       return;
     }
   } catch (error) {
@@ -223,7 +235,7 @@ function isMixedTypography(shape) {
 }
 
 async function waitForLayout() {
-  try { await penpot.waitForLayoutUpdate(1000); }
+  try { await penpot.waitForLayoutUpdate(400); }
   catch (_) {}
 }
 
@@ -410,7 +422,10 @@ function queueTarget(targetId) {
   pendingTargets.add(targetId);
   if (flushQueued) return;
   flushQueued = true;
-  Promise.resolve().then(flushPendingTargets);
+  flushTimer = setTimeout(function () {
+    flushTimer = null;
+    flushPendingTargets().catch(function () {});
+  }, 80);
 }
 
 async function flushPendingTargets() {
@@ -456,9 +471,11 @@ function clearAllWatchers() {
   watcherRegistry.clear();
   targetWatchers.clear();
   pendingTargets.clear();
+  if (flushTimer) { try { clearTimeout(flushTimer); } catch (_) {} flushTimer = null; }
+  flushQueued = false;
 }
 
-async function reconnectCurrentPage() {
+async function reconnectCurrentPage(renderNow) {
   const page = penpot.currentPage;
   if (!page) return 0;
   let texts = [];
@@ -470,21 +487,14 @@ async function reconnectCurrentPage() {
     const state = parseState(shape);
     if (!state || state.live !== true) continue;
     try {
-      saveState(shape, state); // migrates legacy state to the v0.3 key
+      saveState(shape, state); // migrate legacy state to the v0.3.1 key
       watchTarget(shape);
-      await renderTarget(shape, state, "reconnect");
+      if (renderNow === true) await renderTarget(shape, state, "reconnect");
       count += 1;
     } catch (_) {}
   }
   sendLiveState();
   return count;
-}
-
-function goBackground() {
-  send({ type: "background-state", active: true, liveCount: targetWatchers.size });
-  // Re-open the same plugin UI as hidden. The plugin runtime and shapechange
-  // listeners remain active, but the panel no longer occupies canvas space.
-  openUI(true);
 }
 
 async function runApply(rawOptions) {
@@ -547,10 +557,6 @@ async function runApply(rawOptions) {
   sendSelectionState();
   sendLiveState();
 
-  if (options.live && applied > 0) {
-    send({ type: "background-state", active: false, preparing: true, liveCount: targetWatchers.size });
-    setTimeout(function () { goBackground(); }, 650);
-  }
 }
 
 async function restoreOne(shape) {

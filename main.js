@@ -1,4 +1,4 @@
-const SOURCE = "penpot-text-truncate-live-030";
+const SOURCE = "penpot-text-truncate-live-031";
 const qs = new URLSearchParams(location.search);
 document.body.dataset.theme = qs.get("theme") || "light";
 
@@ -29,7 +29,10 @@ function busy(value) {
   el("applyBtn").disabled = value;
   el("restoreBtn").disabled = value;
   el("refreshBtn").disabled = value;
-  el("backgroundBtn").disabled = value;
+  el("compactBtn").disabled = value;
+}
+function setCompact(compact) {
+  document.body.classList.toggle("compact-mode", !!compact);
 }
 
 el("applyBtn").addEventListener("click", function () {
@@ -47,10 +50,14 @@ el("refreshBtn").addEventListener("click", function () {
   status("Refreshing live text…");
   send("refresh");
 });
-
-el("backgroundBtn").addEventListener("click", function () {
-  status("Starting background mode…", "success");
-  send("background");
+el("compactBtn").addEventListener("click", function () {
+  send("compact");
+});
+el("expandBtn").addEventListener("click", function () {
+  send("expand");
+});
+el("stopBtn").addEventListener("click", function () {
+  send("close-plugin");
 });
 el("live").addEventListener("change", function () {
   el("applyBtn").textContent = el("live").checked ? "Enable live truncation" : "Apply once";
@@ -69,7 +76,13 @@ window.addEventListener("message", function (event) {
     return;
   }
   if (msg.type === "live-state") {
-    el("liveState").textContent = "Live targets: " + msg.liveCount;
+    const txt = "Live targets: " + msg.liveCount;
+    el("liveState").textContent = txt;
+    el("compactLiveState").textContent = msg.liveCount + " live";
+    return;
+  }
+  if (msg.type === "compact-state") {
+    setCompact(msg.compact);
     return;
   }
   if (msg.type === "progress") {
@@ -78,12 +91,6 @@ window.addEventListener("message", function (event) {
   }
   if (msg.type === "live-error") {
     status("Live update failed: " + msg.error, "error");
-    return;
-  }
-  if (msg.type === "background-state") {
-    if (msg.preparing) {
-      status("Live truncation enabled. Hiding the plugin; it will keep running in the background.", "success");
-    }
     return;
   }
   if (msg.type === "fatal-error") {
@@ -104,7 +111,7 @@ window.addEventListener("message", function (event) {
     }
     if (msg.action === "apply") {
       const extra = msg.errors && msg.errors.length ? " · " + msg.errors.join(" · ") : "";
-      status("Applied to " + msg.applied + " text layer" + (msg.applied === 1 ? "" : "s") + ". " + msg.truncated + " truncated." + (msg.live ? " Live resize is active; switching to background mode…" : "") + extra, "success");
+      status("Applied to " + msg.applied + " text layer" + (msg.applied === 1 ? "" : "s") + ". " + msg.truncated + " truncated." + (msg.live ? " Live resize is active." : "") + extra, "success");
       return;
     }
     if (msg.action === "restore") {

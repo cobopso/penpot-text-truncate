@@ -1,6 +1,6 @@
 {
-  "name": "Text Truncate Live 0.3.0",
-  "description": "Figma-like responsive ellipsis for Penpot with hidden background mode.",
+  "name": "Text Truncate Live 0.3.1",
+  "description": "Figma-like responsive ellipsis for Penpot with safe compact live mode.",
   "version": 2,
   "code": "plugin.js",
   "icon": "icon.svg",

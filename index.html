@@ -7,13 +7,13 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <main class="app">
+  <main class="app full-ui">
     <header>
       <div>
         <h1>Text Truncate Live</h1>
         <p>Responsive ellipsis while resizing in Penpot</p>
       </div>
-      <span class="badge">0.3.0</span>
+      <span class="badge">0.3.1</span>
     </header>
 
     <section id="selection" class="selection">Checking selection…</section>
@@ -54,14 +54,28 @@
       <button id="applyBtn" class="primary">Enable live truncation</button>
     </div>
 
-    <div class="utility-actions"><button id="refreshBtn" class="ghost">Refresh live text</button><button id="backgroundBtn" class="ghost">Run in background</button></div>
+    <div class="utility-actions">
+      <button id="refreshBtn" class="ghost">Refresh live text</button>
+      <button id="compactBtn" class="ghost">Compact window</button>
+    </div>
     <div id="liveState" class="live-state">Live targets: 0</div>
     <section id="status" class="status">Select a text layer or a component containing text.</section>
 
     <details>
       <summary>Important</summary>
-      <p>Penpot currently exposes no native ellipsis property. v0.3 keeps the plugin runtime alive in hidden background mode after Live is enabled. After a Penpot/browser reload, launch the plugin once again to reconnect saved live text layers, then choose Run in background.</p>
+      <p>Penpot does not expose a native ellipsis property. Live truncation therefore needs the plugin runtime to stay active. Compact mode keeps the runtime running while reducing the panel instead of using the unstable hidden-UI workaround.</p>
     </details>
+  </main>
+
+  <main class="compact-ui">
+    <div class="compact-status">
+      <strong>Truncate Live</strong>
+      <span id="compactLiveState">0 live</span>
+    </div>
+    <div class="compact-actions">
+      <button id="expandBtn" class="ghost">Expand</button>
+      <button id="stopBtn" class="ghost danger">Stop</button>
+    </div>
   </main>
   <script src="main.js"></script>
 </body>
