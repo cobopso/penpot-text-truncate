@@ -1,4 +1,4 @@
-const SOURCE = "penpot-text-truncate-live-022";
+const SOURCE = "penpot-text-truncate-live-030";
 const qs = new URLSearchParams(location.search);
 document.body.dataset.theme = qs.get("theme") || "light";
 
@@ -29,6 +29,7 @@ function busy(value) {
   el("applyBtn").disabled = value;
   el("restoreBtn").disabled = value;
   el("refreshBtn").disabled = value;
+  el("backgroundBtn").disabled = value;
 }
 
 el("applyBtn").addEventListener("click", function () {
@@ -45,6 +46,11 @@ el("refreshBtn").addEventListener("click", function () {
   el("refreshBtn").disabled = true;
   status("Refreshing live text…");
   send("refresh");
+});
+
+el("backgroundBtn").addEventListener("click", function () {
+  status("Starting background mode…", "success");
+  send("background");
 });
 el("live").addEventListener("change", function () {
   el("applyBtn").textContent = el("live").checked ? "Enable live truncation" : "Apply once";
@@ -74,6 +80,12 @@ window.addEventListener("message", function (event) {
     status("Live update failed: " + msg.error, "error");
     return;
   }
+  if (msg.type === "background-state") {
+    if (msg.preparing) {
+      status("Live truncation enabled. Hiding the plugin; it will keep running in the background.", "success");
+    }
+    return;
+  }
   if (msg.type === "fatal-error") {
     busy(false);
     status("Plugin error: " + msg.error, "error");
@@ -92,7 +104,7 @@ window.addEventListener("message", function (event) {
     }
     if (msg.action === "apply") {
       const extra = msg.errors && msg.errors.length ? " · " + msg.errors.join(" · ") : "";
-      status("Applied to " + msg.applied + " text layer" + (msg.applied === 1 ? "" : "s") + ". " + msg.truncated + " truncated." + (msg.live ? " Live resize is active while this window stays open." : "") + extra, "success");
+      status("Applied to " + msg.applied + " text layer" + (msg.applied === 1 ? "" : "s") + ". " + msg.truncated + " truncated." + (msg.live ? " Live resize is active; switching to background mode…" : "") + extra, "success");
       return;
     }
     if (msg.action === "restore") {

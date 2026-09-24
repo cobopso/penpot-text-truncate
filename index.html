@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Text Truncate Live</title>
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main class="app">
@@ -13,7 +13,7 @@
         <h1>Text Truncate Live</h1>
         <p>Responsive ellipsis while resizing in Penpot</p>
       </div>
-      <span class="badge">0.2.2</span>
+      <span class="badge">0.3.0</span>
     </header>
 
     <section id="selection" class="selection">Checking selection…</section>
@@ -54,15 +54,15 @@
       <button id="applyBtn" class="primary">Enable live truncation</button>
     </div>
 
-    <button id="refreshBtn" class="ghost">Refresh live text</button>
+    <div class="utility-actions"><button id="refreshBtn" class="ghost">Refresh live text</button><button id="backgroundBtn" class="ghost">Run in background</button></div>
     <div id="liveState" class="live-state">Live targets: 0</div>
     <section id="status" class="status">Select a text layer or a component containing text.</section>
 
     <details>
       <summary>Important</summary>
-      <p>Penpot currently exposes no native ellipsis property. Live mode listens for size changes and recalculates the visible text while this plugin is open.</p>
+      <p>Penpot currently exposes no native ellipsis property. v0.3 keeps the plugin runtime alive in hidden background mode after Live is enabled. After a Penpot/browser reload, launch the plugin once again to reconnect saved live text layers, then choose Run in background.</p>
     </details>
   </main>
-  <script src="/main.js"></script>
+  <script src="main.js"></script>
 </body>
 </html>

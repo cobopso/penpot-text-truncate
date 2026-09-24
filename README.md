@@ -1,35 +1,25 @@
-# Text Truncate Live for Penpot — GitHub Pages build
+# Text Truncate Live for Penpot
 
-This folder is ready to upload directly to the root of the GitHub repository:
+Figma-like live text truncation for Penpot. The plugin stores the full source text, recalculates the visible ellipsis when the text or its parent resizes, and can keep its runtime active in **hidden background mode** so the plugin window does not occupy the canvas.
 
-`cobopso/penpot-text-truncate`
+## Install from GitHub Pages
 
-After GitHub Pages is enabled, install the plugin in Penpot with:
+After enabling GitHub Pages for this repository, install this manifest in Penpot:
 
 `https://cobopso.github.io/penpot-text-truncate/manifest.json`
 
-## One-time GitHub setup
+## v0.3 workflow
 
-1. Create a **Public** repository named exactly `penpot-text-truncate`.
-2. Upload **the contents of this folder** to the repository root (not the folder itself).
-3. Open **Settings → Pages**.
-4. Under **Build and deployment**, choose **Deploy from a branch**.
-5. Choose branch **main** and folder **/(root)**, then **Save**.
-6. Wait for GitHub Pages to publish.
-7. Check this URL in a browser:
-   `https://cobopso.github.io/penpot-text-truncate/manifest.json`
-8. In Penpot Plugin Manager, remove the localhost build if desired, then install the URL above.
+1. Select a text layer, frame, component, or board.
+2. Configure max lines and other options.
+3. Click **Enable live truncation**.
+4. After a successful apply, the plugin automatically hides and continues running in the background.
+5. You can also reopen the plugin and click **Run in background** to reconnect previously configured live layers without applying settings again.
 
-## Important behavior
+### Important limitation
 
-Live truncation still requires the plugin window to remain open because Penpot does not currently expose a native text-overflow/ellipsis property. GitHub Pages only removes the need to run a local server.
+Penpot does not currently expose a native text-overflow/ellipsis property to plugins. The live behavior therefore depends on the plugin runtime. Hidden background mode keeps that runtime active without a visible panel. After reloading Penpot, restarting the browser, or reopening the file in another session, launch the plugin once to reconnect saved live layers, then send it to background again.
 
-## Files
+## Updating this repository
 
-- `manifest.json` — Penpot plugin manifest v2
-- `plugin.js` — Penpot-side plugin logic
-- `index.html` — plugin UI
-- `main.js` — plugin UI logic
-- `styles.css` — plugin UI styles
-- `icon.svg` — plugin icon
-- `.nojekyll` — prevents GitHub Pages/Jekyll processing
+Upload/replace the files in the repository root, commit the changes, and GitHub Pages will redeploy automatically.

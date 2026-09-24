@@ -1,14 +1,15 @@
 /*
- * Text Truncate Live 0.2.2
+ * Text Truncate Live 0.3.0
  *
  * Safe build: starts from the working v0.1 architecture and only attaches
  * documented shapechange listeners AFTER the user enables live truncation.
  * No polling, no startup page scan, no page/file listeners.
  */
 
-const SOURCE = "penpot-text-truncate-live-022";
+const SOURCE = "penpot-text-truncate-live-030";
 const UI_URL = "https://cobopso.github.io/penpot-text-truncate/index.html";
-const KEY_STATE = "text-truncate-live:state:v022";
+const KEY_STATE = "text-truncate-live:state:v030";
+const LEGACY_KEYS = ["text-truncate-live:state:v022", "text-truncate-live:state:v021", "text-truncate-live:state:v02"];
 const DEFAULT_ELLIPSIS = "…";
 
 const processing = new Set();
@@ -17,10 +18,21 @@ const watcherRegistry = new Map();
 const pendingTargets = new Set();
 let flushQueued = false;
 
-penpot.ui.open("Text Truncate Live", UI_URL + "?theme=" + encodeURIComponent(String(penpot.theme || "light")), {
-  width: 390,
-  height: 620
-});
+let uiHidden = false;
+
+function openUI(hidden) {
+  uiHidden = hidden === true;
+  penpot.ui.open(
+    "Text Truncate Live",
+    UI_URL + "?theme=" + encodeURIComponent(String(penpot.theme || "light")) + (uiHidden ? "&background=1" : ""),
+    { width: 390, height: 620, hidden: uiHidden }
+  );
+}
+
+openUI(false);
+
+// Reconnect text layers that were already marked as live in a previous run.
+Promise.resolve().then(function () { return reconnectCurrentPage(); }).catch(function () {});
 
 penpot.on("themechange", function (theme) {
   send({ type: "themechange", theme: theme });
@@ -28,6 +40,11 @@ penpot.on("themechange", function (theme) {
 
 penpot.on("selectionchange", function () {
   sendSelectionState();
+});
+
+penpot.on("pagechange", function () {
+  clearAllWatchers();
+  Promise.resolve().then(function () { return reconnectCurrentPage(); }).catch(function () {});
 });
 
 penpot.ui.onMessage(async function (message) {
@@ -52,6 +69,12 @@ penpot.ui.onMessage(async function (message) {
 
     if (message.type === "refresh") {
       await refreshLiveTargets();
+      return;
+    }
+
+    if (message.type === "background") {
+      await reconnectCurrentPage();
+      goBackground();
       return;
     }
   } catch (error) {
@@ -137,15 +160,17 @@ function matchesLayerName(shape, filter) {
 }
 
 function parseState(shape) {
-  try {
-    const raw = shape.getPluginData(KEY_STATE);
-    if (!raw) return null;
-    const state = JSON.parse(raw);
-    if (!state || typeof state.sourceText !== "string") return null;
-    return state;
-  } catch (_) {
-    return null;
+  const keys = [KEY_STATE].concat(LEGACY_KEYS);
+  for (let i = 0; i < keys.length; i += 1) {
+    try {
+      const raw = shape.getPluginData(keys[i]);
+      if (!raw) continue;
+      const state = JSON.parse(raw);
+      if (!state || typeof state.sourceText !== "string") continue;
+      return state;
+    } catch (_) {}
   }
+  return null;
 }
 
 function saveState(shape, state) {
@@ -153,7 +178,10 @@ function saveState(shape, state) {
 }
 
 function clearState(shape) {
-  try { shape.setPluginData(KEY_STATE, ""); } catch (_) {}
+  const keys = [KEY_STATE].concat(LEGACY_KEYS);
+  for (let i = 0; i < keys.length; i += 1) {
+    try { shape.setPluginData(keys[i], ""); } catch (_) {}
+  }
 }
 
 function snapshot(shape, options) {
@@ -421,6 +449,44 @@ async function flushPendingTargets() {
   sendLiveState();
 }
 
+function clearAllWatchers() {
+  watcherRegistry.forEach(function (entry) {
+    try { penpot.off(entry.listenerId); } catch (_) {}
+  });
+  watcherRegistry.clear();
+  targetWatchers.clear();
+  pendingTargets.clear();
+}
+
+async function reconnectCurrentPage() {
+  const page = penpot.currentPage;
+  if (!page) return 0;
+  let texts = [];
+  try { texts = page.findShapes({ type: "text" }) || []; } catch (_) { texts = []; }
+
+  let count = 0;
+  for (let i = 0; i < texts.length; i += 1) {
+    const shape = texts[i];
+    const state = parseState(shape);
+    if (!state || state.live !== true) continue;
+    try {
+      saveState(shape, state); // migrates legacy state to the v0.3 key
+      watchTarget(shape);
+      await renderTarget(shape, state, "reconnect");
+      count += 1;
+    } catch (_) {}
+  }
+  sendLiveState();
+  return count;
+}
+
+function goBackground() {
+  send({ type: "background-state", active: true, liveCount: targetWatchers.size });
+  // Re-open the same plugin UI as hidden. The plugin runtime and shapechange
+  // listeners remain active, but the panel no longer occupies canvas space.
+  openUI(true);
+}
+
 async function runApply(rawOptions) {
   const options = normalizeOptions(rawOptions);
   const selection = getSelection();
@@ -480,6 +546,11 @@ async function runApply(rawOptions) {
   });
   sendSelectionState();
   sendLiveState();
+
+  if (options.live && applied > 0) {
+    send({ type: "background-state", active: false, preparing: true, liveCount: targetWatchers.size });
+    setTimeout(function () { goBackground(); }, 650);
+  }
 }
 
 async function restoreOne(shape) {
