@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Text Truncate Live</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <h1>Text Truncate Live</h1>
+        <p>Responsive ellipsis while resizing in Penpot</p>
+      </div>
+      <span class="badge">0.2.2</span>
+    </header>
+
+    <section id="selection" class="selection">Checking selection…</section>
+
+    <div class="row">
+      <label>
+        <span>Max lines</span>
+        <input id="lines" type="number" min="1" max="12" value="1" />
+      </label>
+      <label>
+        <span>Cut at</span>
+        <select id="breakMode">
+          <option value="word" selected>Word boundary</option>
+          <option value="character">Character</option>
+        </select>
+      </label>
+    </div>
+
+    <label>
+      <span>Layer name contains <small>optional</small></span>
+      <input id="layerName" type="text" placeholder="e.g. Subject" />
+    </label>
+
+    <label>
+      <span>Ellipsis</span>
+      <input id="ellipsis" type="text" value="…" maxlength="8" />
+    </label>
+
+    <div class="checks">
+      <label><input id="live" type="checkbox" checked /> Live resize — Figma-like</label>
+      <label><input id="includeDescendants" type="checkbox" checked /> Include text inside selected frames/components</label>
+      <label><input id="keepBoxHeight" type="checkbox" checked /> Keep current text-box height</label>
+      <label><input id="useCurrentAsSource" type="checkbox" /> Use current visible text as new full source</label>
+    </div>
+
+    <div class="actions">
+      <button id="restoreBtn" class="secondary">Restore full text</button>
+      <button id="applyBtn" class="primary">Enable live truncation</button>
+    </div>
+
+    <button id="refreshBtn" class="ghost">Refresh live text</button>
+    <div id="liveState" class="live-state">Live targets: 0</div>
+    <section id="status" class="status">Select a text layer or a component containing text.</section>
+
+    <details>
+      <summary>Important</summary>
+      <p>Penpot currently exposes no native ellipsis property. Live mode listens for size changes and recalculates the visible text while this plugin is open.</p>
+    </details>
+  </main>
+  <script src="/main.js"></script>
+</body>
+</html>
