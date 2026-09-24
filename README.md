@@ -19,7 +19,3 @@ After enabling GitHub Pages for this repository, install this manifest in Penpot
 ### Important limitation
 
 Penpot does not currently expose a native text-overflow/ellipsis property to plugins. The live behavior therefore depends on the plugin runtime. Hidden background mode keeps that runtime active without a visible panel. After reloading Penpot, restarting the browser, or reopening the file in another session, launch the plugin once to reconnect saved live layers, then send it to background again.
-
-## Updating this repository
-
-Upload/replace the files in the repository root, commit the changes, and GitHub Pages will redeploy automatically.
